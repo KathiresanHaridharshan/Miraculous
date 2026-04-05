@@ -4,7 +4,7 @@ import { Play, Pause, RotateCcw, Save, Timer as TimerIcon, Coffee, Brain, Clock,
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { saveTimerSession, getTimerSessions, deleteTimerSession, formatDuration, formatDurationHuman } from '../services/timerService';
-import { getGoals } from '../services/goalsService';
+import { getGoals, addProgressLog } from '../services/goalsService';
 import { SkeletonList } from '../components/common/Loading';
 import { ConfirmModal } from '../components/common/Modal';
 import { format } from 'date-fns';
@@ -97,6 +97,27 @@ export default function Timer() {
     if (duration < 5) return toast.error('Session too short to save');
     try {
       await saveTimerSession(user.uid, { goalId: linkedGoal || null, activityName: activityName || 'General', startTime: startTime?.toISOString() || new Date().toISOString(), endTime: new Date().toISOString(), duration, notes, mode });
+      
+      // Submit progress to goal if linked
+      if (linkedGoal) {
+        const goal = goals.find(g => g.id === linkedGoal);
+        if (goal) {
+          let valueToAdd = 0;
+          if (goal.unit === 'hours') valueToAdd = Number((duration / 3600).toFixed(2));
+          else if (goal.unit === 'minutes') valueToAdd = Math.round(duration / 60);
+          else if (goal.unit === 'times') valueToAdd = 1;
+          else valueToAdd = Number((duration / 3600).toFixed(2));
+
+          if (valueToAdd > 0) {
+            await addProgressLog(user.uid, linkedGoal, {
+              value: valueToAdd,
+              notes: `Focus Session: ${activityName || 'General'}`,
+            });
+            toast.success(`Logged ${valueToAdd} ${goal.unit} to goal!`);
+          }
+        }
+      }
+
       toast.success('Session saved! 💾');
       reset(); setNotes('');
       const updated = await getTimerSessions(user.uid);
