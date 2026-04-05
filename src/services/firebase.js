@@ -36,11 +36,6 @@ try {
 
 export const auth = getAuth(app);
 export { db };
-export const googleProvider = new GoogleAuthProvider();
 export { analytics };
-
-// Add Calendar scope so we can access Google Calendar later
-googleProvider.addScope('https://www.googleapis.com/auth/calendar.readonly');
-googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 export default app;
