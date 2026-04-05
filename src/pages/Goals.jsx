@@ -42,19 +42,38 @@ export default function Goals() {
   useEffect(() => { if (user) loadGoals(); }, [user]);
 
   const handleSave = async (formData) => {
+    // Generate a temporary ID so we can insert instantly into UI
+    const optimisticId = editingGoal ? editingGoal.id : `temp-${Date.now()}`;
+    const optimisticGoal = {
+      id: optimisticId,
+      ...formData,
+      currentValue: editingGoal ? editingGoal.currentValue : 0,
+      status: formData.status || 'active',
+      createdAt: editingGoal ? editingGoal.createdAt : new Date(),
+    };
+
+    // Optimistically update UI
+    setGoals((prev) => {
+      if (editingGoal) return prev.map(g => g.id === optimisticId ? optimisticGoal : g);
+      return [optimisticGoal, ...prev];
+    });
+
+    toast.success(editingGoal ? 'Goal updated!' : 'Goal created! 🎯');
+    setShowForm(false);
+    setEditingGoal(null);
+
+    // Save in background
     try {
       if (editingGoal) {
-        await updateGoal(user.uid, editingGoal.id, formData);
-        toast.success('Goal updated!');
+        await updateGoal(user.uid, optimisticId, formData);
       } else {
         await createGoal(user.uid, formData);
-        toast.success('Goal created! 🎯');
       }
-      setShowForm(false);
-      setEditingGoal(null);
-      loadGoals();
+      loadGoals(); // Reload silently once confirmed
     } catch (e) {
-      toast.error('Failed to save goal');
+      toast.error('Failed to sync goal to server');
+      // Revert optimistic updates on failure
+      loadGoals();
     }
   };
 

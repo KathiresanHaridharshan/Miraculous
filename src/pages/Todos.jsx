@@ -32,11 +32,34 @@ export default function Todos() {
   useEffect(() => { if (user) load(); }, [user]);
 
   const handleSave = async (formData) => {
+    const optimisticId = editingTodo ? editingTodo.id : `temp-${Date.now()}`;
+    const optimisticTask = {
+      id: optimisticId,
+      ...formData,
+      status: formData.status || 'pending',
+      createdAt: editingTodo ? editingTodo.createdAt : new Date(),
+    };
+
+    setTodos(prev => {
+      if (editingTodo) return prev.map(t => t.id === optimisticId ? optimisticTask : t);
+      return [optimisticTask, ...prev];
+    });
+
+    toast.success(editingTodo ? 'Task updated!' : 'Task created! ✅');
+    setShowForm(false);
+    setEditingTodo(null);
+
     try {
-      if (editingTodo) { await updateTodo(user.uid, editingTodo.id, formData); toast.success('Task updated!'); }
-      else { await createTodo(user.uid, formData); toast.success('Task created! ✅'); }
-      setShowForm(false); setEditingTodo(null); load();
-    } catch { toast.error('Failed to save'); }
+      if (editingTodo) {
+        await updateTodo(user.uid, optimisticId, formData);
+      } else {
+        await createTodo(user.uid, formData);
+      }
+      load(); // Silently sync server state
+    } catch { 
+      toast.error('Failed to sync to server');
+      load(); // Revert on failure
+    }
   };
 
   const handleToggle = async (todo) => {

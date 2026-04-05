@@ -30,11 +30,33 @@ export default function CalendarPage() {
   useEffect(() => { if (user) load(); }, [user]);
 
   const handleSave = async (formData) => {
+    const optimisticId = editingEvent ? editingEvent.id : `temp-${Date.now()}`;
+    const optimisticEvent = {
+      id: optimisticId,
+      ...formData,
+      createdAt: editingEvent ? editingEvent.createdAt : new Date(),
+    };
+
+    setEvents(prev => {
+      if (editingEvent) return prev.map(e => e.id === optimisticId ? optimisticEvent : e);
+      return [optimisticEvent, ...prev];
+    });
+
+    toast.success(editingEvent ? 'Event updated!' : 'Event created! 📅');
+    setShowForm(false);
+    setEditingEvent(null);
+
     try {
-      if (editingEvent) { await updateEvent(user.uid, editingEvent.id, formData); toast.success('Event updated!'); }
-      else { await createEvent(user.uid, formData); toast.success('Event created! 📅'); }
-      setShowForm(false); setEditingEvent(null); load();
-    } catch { toast.error('Failed to save'); }
+      if (editingEvent) {
+        await updateEvent(user.uid, optimisticId, formData);
+      } else {
+        await createEvent(user.uid, formData);
+      }
+      load(); // Silently sync server state
+    } catch {
+      toast.error('Failed to sync to server');
+      load(); // Revert on failure
+    }
   };
 
   const handleDelete = async () => {

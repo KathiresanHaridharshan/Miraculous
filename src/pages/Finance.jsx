@@ -42,11 +42,34 @@ export default function Finance() {
   useEffect(() => { if (user) load(); }, [user]);
 
   const handleSave = async (formData) => {
+    const optimisticId = editingTx ? editingTx.id : `temp-${Date.now()}`;
+    const optimisticTx = {
+      id: optimisticId,
+      ...formData,
+      amount: Number(formData.amount),
+      createdAt: editingTx ? editingTx.createdAt : new Date(),
+    };
+
+    setTransactions(prev => {
+      if (editingTx) return prev.map(t => t.id === optimisticId ? optimisticTx : t);
+      return [optimisticTx, ...prev];
+    });
+
+    toast.success(editingTx ? 'Updated!' : 'Added! 💰');
+    setShowForm(false);
+    setEditingTx(null);
+
     try {
-      if (editingTx) { await updateTransaction(user.uid, editingTx.id, formData); toast.success('Updated!'); }
-      else { await addTransaction(user.uid, formData); toast.success('Added! 💰'); }
-      setShowForm(false); setEditingTx(null); load();
-    } catch { toast.error('Failed to save'); }
+      if (editingTx) {
+        await updateTransaction(user.uid, optimisticId, formData);
+      } else {
+        await addTransaction(user.uid, formData);
+      }
+      load(); // Silently sync server state
+    } catch {
+      toast.error('Failed to sync to server');
+      load(); // Revert on failure
+    }
   };
 
   const handleDelete = async () => {

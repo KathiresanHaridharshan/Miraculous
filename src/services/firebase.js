@@ -1,7 +1,7 @@
 // Firebase initialization
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
 
 const firebaseConfig = {
@@ -16,9 +16,16 @@ const firebaseConfig = {
 
 let app;
 let analytics;
+let db;
 
 try {
   app = initializeApp(firebaseConfig);
+  
+  // Enable local caching to make reads instant
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+  });
+
   // Analytics only in production
   if (typeof window !== 'undefined' && import.meta.env.PROD) {
     analytics = getAnalytics(app);
@@ -28,7 +35,7 @@ try {
 }
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+export { db };
 export const googleProvider = new GoogleAuthProvider();
 export { analytics };
 
