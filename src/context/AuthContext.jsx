@@ -12,13 +12,6 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // BYPASS AUTH FOR LOCAL TESTING
-    setUser({ uid: 'local-tester-123', email: 'test@miraculous.app', displayName: 'Test User' });
-    setProfile({ displayName: 'Test User', currencySymbol: '$', theme: 'light' });
-    setLoading(false);
-    
-    // UNCOMMENT LATER TO RESTORE FIREBASE AUTH
-    /*
     const unsubscribe = onAuthChange(async (firebaseUser) => {
       setUser(firebaseUser);
       if (firebaseUser) {
@@ -34,7 +27,6 @@ export function AuthProvider({ children }) {
       setLoading(false);
     });
     return unsubscribe;
-    */
   }, []);
 
   const refreshProfile = async () => {
