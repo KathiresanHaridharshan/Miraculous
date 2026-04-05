@@ -7,6 +7,7 @@ import { useTheme } from '../context/ThemeContext';
 import { ConfirmModal } from '../components/common/Modal';
 
 const CURRENCIES = [
+  { symbol: 'Rs', label: 'Sri Lankan Rupee (Rs)' },
   { symbol: '₹', label: 'Indian Rupee (₹)' },
   { symbol: '$', label: 'US Dollar ($)' },
   { symbol: '€', label: 'Euro (€)' },
